@@ -183,17 +183,24 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 	}
 
 	for i, part := range path {
-		// Dereference pointers
-		for a.target.Kind() == reflect.Ptr {
-			if a.target.IsNil() {
-				return nil, fmt.Errorf("nil pointer at '%s'", strings.Join(path[:i+1], "."))
-			}
-			a.target = a.target.Elem()
-		}
 
-		// For interface{} types, we need to use Elem() to get the actual value
-		if a.target.Kind() == reflect.Interface && !a.target.IsNil() {
-			a.target = a.target.Elem()
+		for {
+			// Dereference pointers
+			if a.target.Kind() == reflect.Ptr {
+				if a.target.IsNil() {
+					return nil, fmt.Errorf("nil pointer at '%s'", strings.Join(path[:i+1], "."))
+				}
+				a.target = a.target.Elem()
+				continue
+			}
+
+			// For unwrap interface{} types, we need to use Elem() to get the actual value
+			if a.target.Kind() == reflect.Interface && !a.target.IsNil() {
+				a.target = a.target.Elem()
+				continue
+			}
+
+			break
 		}
 
 		switch a.target.Kind() {

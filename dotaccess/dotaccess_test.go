@@ -1129,3 +1129,44 @@ func TestPointerIndirectionSyntax(t *testing.T) {
 		}
 	})
 }
+
+func TestAccessorAny(t *testing.T) {
+	// Test accessing a field as 'any' type
+	t.Run("access field as any type", func(t *testing.T) {
+		person := Person{
+			Name: "John Doe",
+			Age:  30,
+		}
+
+		var unknown any = &person
+
+		// Get accessor for Name field as any type
+		accessor, err := GetAccessorDot[any](&unknown, "Name")
+		if err != nil {
+			t.Fatalf("Failed to get accessor for Name as any: %v", err)
+		}
+
+		// Verify we can get the value
+		value := accessor.Get()
+		if value != "John Doe" {
+			t.Errorf("Expected value to be 'John Doe', got '%v'", value)
+		}
+
+		// Test setting a new value
+		err = accessor.Set("Jane Smith")
+		if err != nil {
+			t.Fatalf("Failed to set Name: %v", err)
+		}
+
+		// Verify the value was updated
+		if person.Name != "Jane Smith" {
+			t.Errorf("Expected Name to be 'Jane Smith', got '%s'", person.Name)
+		}
+
+		// Verify we can get the updated value through the accessor
+		updatedValue := accessor.Get()
+		if updatedValue != "Jane Smith" {
+			t.Errorf("Expected accessor to return 'Jane Smith', got '%v'", updatedValue)
+		}
+	})
+}

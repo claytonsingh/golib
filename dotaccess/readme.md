@@ -7,8 +7,8 @@ A type-safe library for accessing and modifying deeply nested fields in Go struc
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Basic Usage](#basic-usage)
   - [Path Notation](#path-notation)
+  - [Basic Usage](#basic-usage)
   - [Pointer Handling](#pointer-handling)
   - [Accessing Unexported Fields](#accessing-unexported-fields)
   - [Error Handling](#error-handling)
@@ -21,6 +21,7 @@ The dotaccess library works with:
 - Maps
 - Slices and arrays
 - Pointers (including multi-level pointers)
+- Interfaces
 - Unexported fields (via unsafe mode)
 
 ## Features
@@ -98,6 +99,10 @@ func main() {
 	// Access a slice element
 	scoreAccessor, _ := dotaccess.GetAccessorDot[int](p, "Scores.0")
 	fmt.Println("First Score:", scoreAccessor.Get())
+
+	// Access a field as any type
+	ageAccessor, _ := dotaccess.GetAccessorDot[any](p, "Age")
+	fmt.Println("Age:", ageAccessor.Get())
 
 	// Modify a field
 	cityAccessor.Set("New City")
