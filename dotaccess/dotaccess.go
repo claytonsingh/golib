@@ -9,6 +9,11 @@ import (
 	"unsafe"
 )
 
+// MaxDereferenceDepth limits consecutive pointer/interface dereferences to prevent infinite loops.
+// Linked lists (struct->pointer->struct) are unaffected. This global safety limit applies to all
+// GetAccessor functions and can be adjusted if needed.
+var MaxDereferenceDepth int = 100
+
 // FieldAccessor provides type-safe access to get and set values in nested structures
 type FieldAccessor[T any] struct {
 	target       reflect.Value
@@ -59,8 +64,7 @@ func (a *FieldAccessor[T]) Get() T {
 	// Dereference until we match the target pointer depth
 	for i := 0; i < -a.ptrDepthDiff; i++ {
 		if val.IsNil() {
-			var zero T
-			return zero // Return zero value if null pointer
+			panic("cannot dereference nil pointer")
 		}
 		val = val.Elem()
 	}
@@ -177,29 +181,28 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 		fieldType: FieldTypeRegular,
 	}
 
-	// Raise an error if we received a struct by value rather than by pointer
-	if a.target.Kind() == reflect.Struct {
-		return nil, errors.New("object must be a pointer to struct, not a struct value")
-	}
-
 	for i, part := range path {
 
+		if part == "" {
+			return nil, errors.New("path is empty at index " + strconv.Itoa(i))
+		}
+
+		maxDereferences := MaxDereferenceDepth
 		for {
-			// Dereference pointers
-			if a.target.Kind() == reflect.Ptr {
+			if maxDereferences <= 0 {
+				return nil, fmt.Errorf("dereference depth limit of %d reached at '%s'", MaxDereferenceDepth, strings.Join(path[:i+1], "."))
+			}
+			maxDereferences--
+
+			// Dereference pointers and interfaces
+			kind := a.target.Kind()
+			if kind == reflect.Ptr || kind == reflect.Interface {
 				if a.target.IsNil() {
 					return nil, fmt.Errorf("nil pointer at '%s'", strings.Join(path[:i+1], "."))
 				}
 				a.target = a.target.Elem()
 				continue
 			}
-
-			// For unwrap interface{} types, we need to use Elem() to get the actual value
-			if a.target.Kind() == reflect.Interface && !a.target.IsNil() {
-				a.target = a.target.Elem()
-				continue
-			}
-
 			break
 		}
 
@@ -221,21 +224,41 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 			}
 
 			if a.isUnexported && !allowUnexported {
-				return nil, fmt.Errorf("cannot access field '%s' of %s type at '%s'", part, a.target.Kind(), strings.Join(path[:i], "."))
+				return nil, fmt.Errorf("cannot access field '%s' of %s type at '%s'", part, parent.Type().String(), strings.Join(path[:i], "."))
 			}
 
+		// String, Bool, Int, Int8, Int16, Int32, Int64, Uint, Uint8, Uint16, Uint32, Uint64, Uintptr
 		case reflect.Map:
 			keyValue := reflect.ValueOf(part)
 			if !keyValue.Type().AssignableTo(a.target.Type().Key()) {
 				// Try to convert string key to the map's key type
-				if a.target.Type().Key().Kind() == reflect.Int {
-					index, err := strconv.Atoi(part)
+				keyType := a.target.Type().Key()
+				switch keyType.Kind() {
+				case reflect.Bool:
+					// Convert string to bool
+					b, err := strconv.ParseBool(part)
 					if err != nil {
-						return nil, fmt.Errorf("cannot convert key '%s' to int for map at '%s'", part, strings.Join(path[:i], "."))
+						return nil, fmt.Errorf("cannot convert key '%s' to bool for map at '%s'", part, strings.Join(path[:i], "."))
 					}
-					keyValue = reflect.ValueOf(index)
-				} else {
-					return nil, fmt.Errorf("incompatible key type for map at '%s'", strings.Join(path[:i], "."))
+					keyValue = reflect.ValueOf(b)
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					// Convert string to any integer type
+					index, err := strconv.ParseInt(part, 10, 64)
+					if err != nil {
+						return nil, fmt.Errorf("cannot convert key '%s' to %s for map at '%s'", part, keyType.Kind(), strings.Join(path[:i], "."))
+					}
+					// Convert to the specific int type
+					keyValue = reflect.ValueOf(index).Convert(keyType)
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+					// Convert string to any unsigned integer type
+					index, err := strconv.ParseUint(part, 10, 64)
+					if err != nil {
+						return nil, fmt.Errorf("cannot convert key '%s' to %s for map at '%s'", part, keyType.Kind(), strings.Join(path[:i], "."))
+					}
+					// Convert to the specific uint type
+					keyValue = reflect.ValueOf(index).Convert(keyType)
+				default:
+					return nil, fmt.Errorf("incompatible key type for map at '%s', cannot convert string to %s", strings.Join(path[:i], "."), keyType.Kind())
 				}
 			}
 
@@ -270,7 +293,7 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 			}
 
 		default:
-			return nil, fmt.Errorf("cannot access field '%s' of %s type at '%s'", part, a.target.Kind(), strings.Join(path[:i], "."))
+			return nil, fmt.Errorf("cannot access field '%s' of %s type at '%s'", part, a.target.Type().String(), strings.Join(path[:i], "."))
 		}
 	}
 
@@ -307,7 +330,11 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 				}
 
 				// T -> *T conversion - make sure we can make a pointer to it
-				if a.fieldType == FieldTypeMapElement || !a.target.CanAddr() {
+				if a.fieldType == FieldTypeMapElement {
+					return nil, fmt.Errorf("cannot request a pointer to a map element: found %s but requested %s", sourceType, targetType)
+				}
+
+				if !a.target.CanAddr() {
 					return nil, fmt.Errorf("type mismatch: found %s but requested %s", sourceType, targetType)
 				}
 			}

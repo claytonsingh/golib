@@ -45,11 +45,10 @@ Dot notation provides a simple string-based syntax for accessing nested fields. 
 
 - **Simple field access**: `"Name"` accesses the top-level field named "Name"
 - **Nested struct fields**: `"Address.Street"` accesses the "Street" field within the "Address" struct
-- **Map values**: `"Tags.role"` accesses the value with key "role" in the "Tags" map. Only string keys are supported.
+- **Map values**: `"Tags.role"` accesses the value with key "role" in the "Tags" map. Maps support String, Bool, Int, Int8, Int16, Int32, Int64, Uint, Uint8, Uint16, Uint32, Uint64, and Uintptr as keys.
 - **Slice/array elements**: `"Scores.0"` accesses the first element (index 0) of the "Scores" slice
 - **Combined paths**: `"Friends.0.Address.City"` can navigate through slices and nested structs
 - **Pointer dereferencing**: `"Contact*"` explicitly dereferences a pointer field. Multiple asterisks can be used for multi-level pointers (e.g., `"Manager**"`)
-
 
 ### Basic Usage
 
