@@ -1,3 +1,17 @@
+// Package dotaccess provides a type-safe library for accessing and modifying deeply nested fields
+// in Go structures using dot notation.
+//
+// The package works with:
+//   - Nested structs
+//   - Maps
+//   - Slices and arrays
+//   - Pointers (including multi-level pointers)
+//   - Interfaces
+//   - Unexported fields (via unsafe mode)
+//
+// It provides a simple API for getting and setting values in complex nested structures
+// with full type safety using Go's generics, along with automatic pointer dereferencing
+// and nil pointer handling.
 package dotaccess
 
 import (
@@ -10,51 +24,65 @@ import (
 )
 
 // MaxDereferenceDepth limits consecutive pointer/interface dereferences to prevent infinite loops.
-// Linked lists (struct->pointer->struct) are unaffected. This global safety limit applies to all
-// GetAccessor functions and can be adjusted if needed.
+// Linked lists (struct->pointer->struct) are unaffected by this limit. This global safety limit
+// applies to all GetAccessor functions and can be adjusted if needed.
 var MaxDereferenceDepth int = 100
 
-// FieldAccessor provides type-safe access to get and set values in nested structures
+// FieldAccessor provides type-safe access to get and set values in nested structures.
+//
+// The generic type T represents the type of the field being accessed. FieldAccessor
+// handles pointer depth differences between source and target types automatically.
+//
+// Parameters:
+//   - T: The expected type of the field being accessed
 type FieldAccessor[T any] struct {
 	target       reflect.Value
 	key          reflect.Value // Key in map or index in slice (as reflect.Value)
-	fieldType    FieldType     // Type of the field (regular, map element, slice element, etc.)
+	fieldType    fieldType     // Type of the field (regular, map element, slice element, etc.)
 	isUnexported bool          // Track if field is unexported
 	ptrDepthDiff int           // Difference between target and source pointer depths (target - source)
 }
 
-// FieldType represents the type of field being accessed
-type FieldType int
+// fieldType represents the type of field being accessed.
+// This indicates whether the field is a regular struct field, a map element, or a slice element.
+type fieldType int
 
 const (
-	FieldTypeRegular FieldType = iota
-	FieldTypeMapElement
-	FieldTypeSliceElement
+	fieldTypeRegular fieldType = iota
+	fieldTypeMapElement
+	fieldTypeSliceElement
 )
 
-// Get retrieves the current value of the field with type safety
-func (a *FieldAccessor[T]) Get() T {
+// Get retrieves the current value of the field.
+//
+// Returns:
+//   - T: The value of the field with the requested type.
+//
+// Panics:
+//   - If a nil pointer needs to be dereferenced.
+//   - If there's an unexpected pointer conversion error.
+func (this *FieldAccessor[T]) Get() T {
 	// Get the val of the field
 	var val reflect.Value
-	switch a.fieldType {
-	case FieldTypeMapElement:
-		val = a.target.MapIndex(a.key)
-	case FieldTypeSliceElement:
-		val = a.target.Index(int(a.key.Int()))
+	switch this.fieldType {
+	case fieldTypeMapElement:
+		val = this.target.MapIndex(this.key)
+	case fieldTypeSliceElement:
+		val = this.target.Index(int(this.key.Int()))
 	default:
-		val = a.target
+		val = this.target
 	}
 
 	// Target has more pointers than source - need to add pointers
-	if a.ptrDepthDiff > 0 {
+	if this.ptrDepthDiff > 0 {
 		// Map elements cannot be addressed
-		if a.fieldType == FieldTypeMapElement {
+		if this.fieldType == fieldTypeMapElement {
 			// This should never happen as it is checked in the getAccessor function
 			panic("cannot get pointer to map element")
 		}
 
 		// Add the required number of pointers
-		for i := 0; i < a.ptrDepthDiff; i++ {
+		for i := 0; i < this.ptrDepthDiff; i++ {
 			// Create a pointer to the value
 			val = reflect.NewAt(val.Type(), unsafe.Pointer(val.UnsafeAddr()))
 		}
@@ -62,7 +90,7 @@ func (a *FieldAccessor[T]) Get() T {
 
 	// Source has more pointers than target - need to dereference
 	// Dereference until we match the target pointer depth
-	for i := 0; i < -a.ptrDepthDiff; i++ {
+	for i := 0; i < -this.ptrDepthDiff; i++ {
 		if val.IsNil() {
 			panic("cannot dereference nil pointer")
 		}
@@ -70,20 +98,30 @@ func (a *FieldAccessor[T]) Get() T {
 	}
 
 	// Handle unexported fields
-	if a.isUnexported {
+	if this.isUnexported {
 		return reflect.NewAt(val.Type(), unsafe.Pointer(val.UnsafeAddr())).Elem().Interface().(T)
 	} else {
 		return val.Interface().(T)
 	}
 }
 
-// Set attempts to set a new value to the field with type safety
-func (a *FieldAccessor[T]) Set(value T) error {
+// Set attempts to set a new value to the field.
+//
+// Parameters:
+//   - value T: The new value to set.
+//
+// Returns:
+//   - error: Any error that occurred during the set operation, or nil if successful.
+//
+// Panics:
+//   - If a nil pointer needs to be dereferenced.
+//   - If there's an unexpected pointer conversion error.
+func (this *FieldAccessor[T]) Set(value T) error {
 
 	val := reflect.ValueOf(value)
 
 	// Target needs more pointers than source has
-	for i := 0; i < -a.ptrDepthDiff; i++ {
+	for i := 0; i < -this.ptrDepthDiff; i++ {
 		// Create a new value that points to the original
 		newValue := reflect.New(val.Type())
 		newValue.Elem().Set(val)
@@ -91,7 +129,7 @@ func (a *FieldAccessor[T]) Set(value T) error {
 	}
 
 	// Target needs fewer pointers than source has - dereference
-	for i := 0; i < a.ptrDepthDiff; i++ {
+	for i := 0; i < this.ptrDepthDiff; i++ {
 		if val.IsNil() {
 			return errors.New("cannot dereference nil pointer")
 		}
@@ -99,31 +137,41 @@ func (a *FieldAccessor[T]) Set(value T) error {
 	}
 
 	// Handle different field types
-	switch a.fieldType {
-	case FieldTypeMapElement:
+	switch this.fieldType {
+	case fieldTypeMapElement:
 		// Handle map elements
-		a.target.SetMapIndex(a.key, val)
+		this.target.SetMapIndex(this.key, val)
 
-	case FieldTypeSliceElement:
+	case fieldTypeSliceElement:
 		// Handle slice elements
-		index := int(a.key.Int())
-		a.target.Index(index).Set(val)
+		index := int(this.key.Int())
+		this.target.Index(index).Set(val)
 
 	default:
 		// Handle regular fields (exported or unexported)
-		if a.isUnexported {
-			reflect.NewAt(a.target.Type(), unsafe.Pointer(a.target.UnsafeAddr())).Elem().Set(val)
+		if this.isUnexported {
+			reflect.NewAt(this.target.Type(), unsafe.Pointer(this.target.UnsafeAddr())).Elem().Set(val)
 		} else {
-			a.target.Set(val)
+			this.target.Set(val)
 		}
 	}
 
 	return nil
 }
 
-// GetAccessorDot returns a type-safe accessor for the field at the given path
-// Path is in dot notation, e.g. "person.address.street"
-// Supports navigating through structs, maps, slices, and pointers
+// GetAccessorDot returns a type-safe accessor for the field at the given path.
+// Path is in dot notation, e.g. "person.address.street".
+// Supports navigating through structs, maps, slices, and pointers.
+//
+// Parameters:
+//   - T: The expected type of the field being accessed.
+//   - U: The type of the object being accessed.
+//   - obj *U: Pointer to the object to navigate.
+//   - path string: Dot-separated path to the desired field.
+//
+// Returns:
+//   - *FieldAccessor[T]: A type-safe accessor for the field.
+//   - error: Any error that occurred while navigating the path.
 func GetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error) {
 	parts := strings.Split(path, ".")
 	// Grab the last part of the path and count the number of pointers in it
@@ -134,10 +182,20 @@ func GetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error
 	return getAccessor[T](obj, parts, false, finalDereference)
 }
 
-// UnsafeGetAccessorDot returns a type-safe accessor for the field at the given path
-// Path is in dot notation, e.g. "person.address.street"
-// Supports navigating through structs, maps, slices, and pointers
-// Unsafe accessor will return the value as is, even if the field is unexported
+// UnsafeGetAccessorDot returns a type-safe accessor for the field at the given path.
+// Path is in dot notation, e.g. "person.address.street".
+// Supports navigating through structs, maps, slices, and pointers.
+// Unsafe accessor will return the value as is, even if the field is unexported.
+//
+// Parameters:
+//   - T: The expected type of the field being accessed.
+//   - U: The type of the object being accessed.
+//   - obj *U: Pointer to the object to navigate.
+//   - path string: Dot-separated path to the desired field.
+//
+// Returns:
+//   - *FieldAccessor[T]: A type-safe accessor for the field.
+//   - error: Any error that occurred while navigating the path.
 func UnsafeGetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error) {
 	parts := strings.Split(path, ".")
 	// Grab the last part of the path and count the number of pointers in it
@@ -148,23 +206,43 @@ func UnsafeGetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T],
 	return getAccessor[T](obj, parts, true, finalDereference)
 }
 
-// GetAccessor returns a type-safe accessor for the field at the given path
-// Path is in dot notation, e.g. "person.address.street"
-// Supports navigating through structs, maps, slices, and pointers
+// GetAccessor returns a type-safe accessor for the field at the given path.
+// Supports navigating through structs, maps, slices, and pointers.
+//
+// Parameters:
+//   - T: The expected type of the field being accessed.
+//   - U: The type of the object being accessed.
+//   - obj *U: Pointer to the object to navigate.
+//   - path []string: Array of field names to navigate.
+//   - finalDereference int: Number of times to dereference the final field. You likely want to pass 0 here.
+//
+// Returns:
+//   - *FieldAccessor[T]: A type-safe accessor for the field.
+//   - error: Any error that occurred while navigating the path.
 func GetAccessor[T any, U any](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error) {
 	return getAccessor[T](obj, path, false, finalDereference)
 }
 
-// UnsafeGetAccessor returns a type-safe accessor for the field at the given path
-// Path is in dot notation, e.g. "person.address.street"
-// Supports navigating through structs, maps, slices, and pointers
-// Unsafe accessor will return the value as is, even if the field is unexported
+// UnsafeGetAccessor returns a type-safe accessor for the field at the given path.
+// Supports navigating through structs, maps, slices, and pointers.
+// Unsafe accessor will return the value as is, even if the field is unexported.
+//
+// Parameters:
+//   - T: The expected type of the field being accessed.
+//   - U: The type of the object being accessed.
+//   - obj *U: Pointer to the object to navigate.
+//   - path []string: Array of field names to navigate.
+//   - finalDereference int: Number of times to dereference the final field. You likely want to pass 0 here.
+//
+// Returns:
+//   - *FieldAccessor[T]: A type-safe accessor for the field.
+//   - error: Any error that occurred while navigating the path.
 func UnsafeGetAccessor[T any, U any](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error) {
 	return getAccessor[T](obj, path, true, finalDereference)
 }
 
-// getAccessor is a helper function that returns a type-safe accessor for the field at the given path
-// If unsafe is true, the accessor will return the value as is, even if the field is unexported
+// getAccessor is a helper function that returns a type-safe accessor for the field at the given path.
+// If unsafe is true, the accessor will return the value as is, even if the field is unexported.
 func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, finalDereference int) (*FieldAccessor[T], error) {
 	if obj == nil {
 		return nil, errors.New("object is nil")
@@ -178,7 +256,7 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 	var parent reflect.Value
 	a := FieldAccessor[T]{
 		target:    reflect.ValueOf(obj),
-		fieldType: FieldTypeRegular,
+		fieldType: fieldTypeRegular,
 	}
 
 	for i, part := range path {
@@ -220,7 +298,7 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 			a = FieldAccessor[T]{
 				target:       fieldValue,
 				isUnexported: !canSet && canAddr,
-				fieldType:    FieldTypeRegular,
+				fieldType:    fieldTypeRegular,
 			}
 
 			if a.isUnexported && !allowUnexported {
@@ -272,7 +350,7 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 			a = FieldAccessor[T]{
 				target:    mapValue,
 				key:       keyValue,
-				fieldType: FieldTypeMapElement,
+				fieldType: fieldTypeMapElement,
 			}
 
 		case reflect.Slice, reflect.Array:
@@ -289,7 +367,7 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 			a = FieldAccessor[T]{
 				target:    a.target.Index(index),
 				key:       reflect.ValueOf(index),
-				fieldType: FieldTypeSliceElement,
+				fieldType: fieldTypeSliceElement,
 			}
 
 		default:
@@ -305,7 +383,7 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 		parent = a.target
 		a = FieldAccessor[T]{
 			target:    a.target.Elem(),
-			fieldType: FieldTypeRegular,
+			fieldType: fieldTypeRegular,
 		}
 	}
 
@@ -330,7 +408,7 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 				}
 
 				// T -> *T conversion - make sure we can make a pointer to it
-				if a.fieldType == FieldTypeMapElement {
+				if a.fieldType == fieldTypeMapElement {
 					return nil, fmt.Errorf("cannot request a pointer to a map element: found %s but requested %s", sourceType, targetType)
 				}
 
@@ -345,14 +423,14 @@ func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, fina
 	}
 
 	// If we are accessing a map or slice element, we access the parent
-	if a.fieldType == FieldTypeMapElement || a.fieldType == FieldTypeSliceElement {
+	if a.fieldType == fieldTypeMapElement || a.fieldType == fieldTypeSliceElement {
 		a.target = parent
 	}
 
 	return &a, nil
 }
 
-// getPointerTypeAndDepth returns the base type (without pointers) and the number of pointer indirections
+// getPointerTypeAndDepth returns the base type (without pointers) and the number of pointer indirections.
 func getPointerTypeAndDepth(t reflect.Type) (reflect.Type, int) {
 	depth := 0
 	for t.Kind() == reflect.Ptr {

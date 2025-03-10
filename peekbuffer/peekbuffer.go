@@ -8,11 +8,11 @@ const FillPeekBufferSize = 4096
 // PeekBuffer is a custom reader that wraps an existing io.Reader and provides peeking capability.
 // It allows looking ahead in the input stream without consuming the data. Key features:
 //
-// 1. Implements io.Reader and io.ByteReader interfaces for compatibility with standard readers.
-// 2. Provides a Peek and PeekByte method to inspect upcoming data without advancing the read position.
-// 3. Prioritizes returning peeked data before reading from the underlying reader.
-// 4. Efficiently manages an internal buffer for storing peeked data, growing as needed.
-// 5. Handles cases where less data is available than requested during Peek operations.
+// - Implements io.Reader and io.ByteReader interfaces for compatibility with standard readers.
+// - Provides a Peek and PeekByte method to inspect upcoming data without advancing the read position.
+// - Prioritizes returning peeked data before reading from the underlying reader.
+// - Efficiently manages an internal buffer for storing peeked data, growing as needed.
+// - Handles cases where less data is available than requested during Peek operations.
 //
 // This structure is useful for scenarios requiring examination of upcoming data to make
 // processing decisions, such as detecting file types or parsing structured data streams.
@@ -85,8 +85,8 @@ func (this *PeekBuffer) ReadByte() (byte, error) {
 // Peek allows looking ahead in the stream without consuming the data.
 // It attempts to return up to 'size' bytes from the stream, buffering them if necessary.
 // If less than 'size' bytes are available, it returns as much as possible.
-// The returned slice is only valid until the next Read operation.
-// Note: Modifications to the returned slice will affect subsequent Read operations.
+// The returned slice is only valid until the next Read or Peek operation.
+// Note: Modifications to the returned slice will affect subsequent Read and Peek operations.
 //
 // Parameters:
 //   - size int: The number of bytes to peek ahead.
