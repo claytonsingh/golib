@@ -54,7 +54,7 @@ Dot notation provides a simple string-based syntax for accessing nested fields. 
 
 The library handles type conversion and validation automatically based on the generic type parameter used when creating an accessor.
 
-**Note**: The field is bound to the accessor during the call to GetAccessor / GetAccessorDot. If you need to access the same field on different objects, create a multiple accessors.
+**Note**: The field is bound to the accessor during the call to NewAccessor / NewAccessorDot. If you need to access the same field on different objects, create a multiple accessors.
 
 ```go
 type Address struct {
@@ -84,23 +84,23 @@ func main() {
 	}
 
 	// Access a simple field
-	nameAccessor, _ := dotaccess.GetAccessorDot[string](p, "Name")
+	nameAccessor, _ := dotaccess.NewAccessorDot[string](p, "Name")
 	fmt.Println("Name:", nameAccessor.Get())
 
 	// Access a nested field
-	cityAccessor, _ := dotaccess.GetAccessorDot[string](p, "Address.City")
+	cityAccessor, _ := dotaccess.NewAccessorDot[string](p, "Address.City")
 	fmt.Println("City:", cityAccessor.Get())
 
 	// Access a map value
-	roleAccessor, _ := dotaccess.GetAccessorDot[string](p, "Tags.role")
+	roleAccessor, _ := dotaccess.NewAccessorDot[string](p, "Tags.role")
 	fmt.Println("Role:", roleAccessor.Get())
 
 	// Access a slice element
-	scoreAccessor, _ := dotaccess.GetAccessorDot[int](p, "Scores.0")
+	scoreAccessor, _ := dotaccess.NewAccessorDot[int](p, "Scores.0")
 	fmt.Println("First Score:", scoreAccessor.Get())
 
 	// Access a field as any type
-	ageAccessor, _ := dotaccess.GetAccessorDot[any](p, "Age")
+	ageAccessor, _ := dotaccess.NewAccessorDot[any](p, "Age")
 	fmt.Println("Age:", ageAccessor.Get())
 
 	// Modify a field
@@ -113,7 +113,7 @@ func main() {
 
 The library handles pointers intelligently, allowing you to work with pointer fields in a type-safe manner. When accessing fields that are pointers, you have several options:
 
-1. **Automatic Dereferencing**: By default, when you access a pointer field using `GetAccessorDot`, the library will automatically dereference the pointer when you call Get and Set to provide the underlying value.
+1. **Automatic Dereferencing**: By default, when you access a pointer field using `NewAccessorDot`, the library will automatically dereference the pointer when you call Get and Set to provide the underlying value.
 
 2. **Pointer Notation**: You can use the `*` suffix at on the last element of the path to explicitly dereference a pointer. For example, `"Name*"` will dereference the pointer at the `Name` field. If you have double pointers or more, you can use multiple `*` suffixes. For example, `"Name**"` will dereference the pointer at the `Name` field twice. The pointer is bound to the accessor instead of the field.
 
@@ -133,7 +133,7 @@ user := &User{
 fmt.Println("Name:", user.Name, *user.Name)
 
 // Access through pointer is automatically handled
-nameAccessor1, _ := dotaccess.GetAccessorDot[string](user, "Name")
+nameAccessor1, _ := dotaccess.NewAccessorDot[string](user, "Name")
 fmt.Println("Name:", nameAccessor1.Get())
 
 // This is equivalent to
@@ -146,7 +146,7 @@ nameAccessor1.Set("new1@example.com")
 fmt.Println("Name:", user.Name, *user.Name)
 
 // Use pointer notation to get pointer to name field on user
-nameAccessor2, _ := dotaccess.GetAccessorDot[*string](user, "Name")
+nameAccessor2, _ := dotaccess.NewAccessorDot[*string](user, "Name")
 namePtr := nameAccessor2.Get()
 *namePtr = "new2@example.com"
 
@@ -155,7 +155,7 @@ namePtr := nameAccessor2.Get()
 fmt.Println("Name:", user.Name, *user.Name)
 
 // Access the pointer, not the field on user
-nameAccessor3, _ := dotaccess.GetAccessorDot[string](user, "Name*")
+nameAccessor3, _ := dotaccess.NewAccessorDot[string](user, "Name*")
 fmt.Println("Name:", nameAccessor3.Get())
 
 // This is equivalent to *user.Name = "new@example.com"
@@ -177,7 +177,7 @@ The library provides "unsafe" versions of accessor methods to access and modify 
 buf := bytes.NewBuffer([]byte("hello"))
 
 // Access the unexported 'buf' field
-bufAccessor, _ := dotaccess.UnsafeGetAccessorDot[[]byte](buf, "buf")
+bufAccessor, _ := dotaccess.NewUnsafeAccessorDot[[]byte](buf, "buf")
 
 // Get the current buffer content
 content := bufAccessor.Get()
@@ -198,21 +198,21 @@ person := &Person{
 }
 
 // Access a non-existent field
-accessor, err := dotaccess.GetAccessorDot[string](person, "NonExistentField")
+accessor, err := dotaccess.NewAccessorDot[string](person, "NonExistentField")
 if err != nil {
 	fmt.Println("Error:", err)  // no field named 'NonExistentField'
 	return
 }
 
 // Access out-of-bounds slice index
-scoresAccessor, err := dotaccess.GetAccessorDot[int](person, "Scores.10")
+scoresAccessor, err := dotaccess.NewAccessorDot[int](person, "Scores.10")
 if err != nil {
 	fmt.Println("Error:", err)  // invalid slice/array index '10'
 	return
 }
 
 // Type mismatch
-nameAsInt, err := dotaccess.GetAccessorDot[int](person, "Name")
+nameAsInt, err := dotaccess.NewAccessorDot[int](person, "Name")
 if err != nil {
 	fmt.Println("Error:", err)  // type mismatch: found string but requested int
 	return
@@ -229,19 +229,19 @@ Common errors include:
 
 ## API Reference
 
-*`GetAccessorDot[T, U](obj *U, path string) (*FieldAccessor[T], error)`*
+*`NewAccessorDot[T, U](obj *U, path string) (*FieldAccessor[T], error)`*
 
 Gets an accessor for a field using dot notation.
 
-*`UnsafeGetAccessorDot[T, U](obj *U, path string) (*FieldAccessor[T], error)`*
+*`NewUnsafeAccessorDot[T, U](obj *U, path string) (*FieldAccessor[T], error)`*
 
 Gets an accessor for a field using dot notation. Unsafe accessor can get and set unexported fields.
 
-*`GetAccessor[T, U](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error)`*
+*`NewAccessor[T, U](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error)`*
 
 Gets an accessor using a path of strings and a final dereference count.
 
-*`UnsafeGetAccessor[T, U](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error)`*
+*`NewUnsafeAccessor[T, U](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error)`*
 
 Gets an accessor using a path of strings and a final dereference count. Unsafe accessor can get and set unexported fields.
 

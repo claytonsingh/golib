@@ -51,7 +51,7 @@ func TestGetAccessor_Struct(t *testing.T) {
 	}
 
 	// Test simple field access
-	accessor1, err := GetAccessorDot[string](&person, "Name")
+	accessor1, err := NewAccessorDot[string](&person, "Name")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Name: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestGetAccessor_Struct(t *testing.T) {
 	}
 
 	// Test nested struct field
-	accessor2, err := GetAccessorDot[string](&person, "Address.Street")
+	accessor2, err := NewAccessorDot[string](&person, "Address.Street")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Address.Street: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestGetAccessor_Struct(t *testing.T) {
 	}
 
 	// Test slice access
-	accessor3, err := GetAccessorDot[string](&person, "Tags.1")
+	accessor3, err := NewAccessorDot[string](&person, "Tags.1")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Tags.1: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestGetAccessor_Struct(t *testing.T) {
 	}
 
 	// Test map access
-	accessor4, err := GetAccessorDot[int](&person, "Scores.math")
+	accessor4, err := NewAccessorDot[int](&person, "Scores.math")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Scores.math: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestGetAccessor_Struct(t *testing.T) {
 	}
 
 	// Test pointer dereferencing
-	accessor5, err := GetAccessorDot[string](&person, "Contact.Email")
+	accessor5, err := NewAccessorDot[string](&person, "Contact.Email")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Contact.Email: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestGetAccessor_Set(t *testing.T) {
 	}
 
 	// Test setting a simple field
-	accessor1, err := GetAccessorDot[string](person, "Name")
+	accessor1, err := NewAccessorDot[string](person, "Name")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Name: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestGetAccessor_Set(t *testing.T) {
 	}
 
 	// Test setting a nested struct field
-	accessor2, err := GetAccessorDot[string](person, "Address.City")
+	accessor2, err := NewAccessorDot[string](person, "Address.City")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Address.City: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestGetAccessor_Set(t *testing.T) {
 	}
 
 	// Test setting a slice element
-	accessor3, err := GetAccessorDot[string](person, "Tags.0")
+	accessor3, err := NewAccessorDot[string](person, "Tags.0")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Tags.0: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestGetAccessor_Set(t *testing.T) {
 	}
 
 	// Test setting a field through a pointer
-	accessor4, err := GetAccessorDot[bool](person, "Contact.Preferred")
+	accessor4, err := NewAccessorDot[bool](person, "Contact.Preferred")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Contact.Preferred: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestGetAccessor_Set(t *testing.T) {
 	}
 
 	// Test getting and setting nil values
-	accessor5, err := GetAccessorDot[*Contact](person, "Contact")
+	accessor5, err := NewAccessorDot[*Contact](person, "Contact")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for Contact: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestGetAccessor_ComplexPath(t *testing.T) {
 	}
 
 	// Test complex path access
-	accessor1, err := GetAccessorDot[float64](&data, "users.0.accounts.savings.balance")
+	accessor1, err := NewAccessorDot[float64](&data, "users.0.accounts.savings.balance")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for users.0.accounts.savings.balance: %v", err)
 	}
@@ -251,7 +251,7 @@ func TestGetAccessor_ComplexPath(t *testing.T) {
 	}
 
 	// Test setting a value in a complex path
-	accessor2, err := GetAccessorDot[string](&data, "users.1.name")
+	accessor2, err := NewAccessorDot[string](&data, "users.1.name")
 	if err != nil {
 		t.Fatalf("Failed to get accessor for users.1.name: %v", err)
 	}
@@ -310,7 +310,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 	t.Run("pointer to slice", func(t *testing.T) {
 
 		// Test pointer to slice
-		accessor1, err := GetAccessorDot[int](&alice, "FriendIDs.1")
+		accessor1, err := NewAccessorDot[int](&alice, "FriendIDs.1")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for FriendIDs.1: %v", err)
 		}
@@ -319,7 +319,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test setting value in pointer to slice
-		accessor2, err := GetAccessorDot[int](&alice, "FriendIDs.0")
+		accessor2, err := NewAccessorDot[int](&alice, "FriendIDs.0")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for FriendIDs.0: %v", err)
 		}
@@ -332,7 +332,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test slice of pointers
-		accessor3, err := GetAccessorDot[string](&alice, "Friends.0.Name")
+		accessor3, err := NewAccessorDot[string](&alice, "Friends.0.Name")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Friends.0.Name: %v", err)
 		}
@@ -341,7 +341,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test setting value in slice of pointers
-		accessor4, err := GetAccessorDot[int](&alice, "Friends.1.Age")
+		accessor4, err := NewAccessorDot[int](&alice, "Friends.1.Age")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Friends.1.Age: %v", err)
 		}
@@ -354,7 +354,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test pointer to map
-		accessor5, err := GetAccessorDot[string](&alice, "Properties.eyes")
+		accessor5, err := NewAccessorDot[string](&alice, "Properties.eyes")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Properties.eyes: %v", err)
 		}
@@ -363,7 +363,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test setting value in pointer to map
-		accessor6, err := GetAccessorDot[string](&alice, "Properties.hair")
+		accessor6, err := NewAccessorDot[string](&alice, "Properties.hair")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Properties.hair: %v", err)
 		}
@@ -376,7 +376,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test map of pointers
-		accessor7, err := GetAccessorDot[*string](&alice, "Metadata.email")
+		accessor7, err := NewAccessorDot[*string](&alice, "Metadata.email")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Metadata.email: %v", err)
 		}
@@ -386,7 +386,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 
 		// Test setting value in map of pointers
 		newEmail := "new_bob@example.com"
-		accessor8, err := GetAccessorDot[*string](&alice, "Metadata.alt_email")
+		accessor8, err := NewAccessorDot[*string](&alice, "Metadata.alt_email")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Metadata.alt_email: %v", err)
 		}
@@ -399,7 +399,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test double pointer access
-		accessor9, err := GetAccessorDot[string](&alice, "Manager.Name")
+		accessor9, err := NewAccessorDot[string](&alice, "Manager.Name")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Manager.Name: %v", err)
 		}
@@ -408,7 +408,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 		}
 
 		// Test setting through double pointer
-		accessor10, err := GetAccessorDot[int](&alice, "Manager.Age")
+		accessor10, err := NewAccessorDot[int](&alice, "Manager.Age")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Manager.Age: %v", err)
 		}
@@ -427,7 +427,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 
 	// Test double pointer -> value (multiple levels of dereferencing)
 	t.Run("double pointer -> value", func(t *testing.T) {
-		accessor, err := GetAccessorDot[int](&alice, "Manager.Age")
+		accessor, err := NewAccessorDot[int](&alice, "Manager.Age")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Manager.Age: %v", err)
 		}
@@ -453,7 +453,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 	// Test getting a pointer to value (value to pointer)
 	t.Run("value to pointer", func(t *testing.T) {
 		// Get the pointer to the Name field
-		ptrAccessor, err := GetAccessorDot[*string](&alice, "Name")
+		ptrAccessor, err := NewAccessorDot[*string](&alice, "Name")
 		if err != nil {
 			t.Fatalf("Failed to get pointer accessor for &Name: %v", err)
 		}
@@ -475,7 +475,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 	// Test pointer to double pointer - getting **Contact from *Contact field
 	t.Run("pointer to double pointer", func(t *testing.T) {
 		// Get a double pointer to the Contact field (which is already *Contact)
-		contactPtrAccessor, err := UnsafeGetAccessorDot[**Contact](&alice, "Contact")
+		contactPtrAccessor, err := NewUnsafeAccessorDot[**Contact](&alice, "Contact")
 		if err != nil {
 			t.Fatalf("Failed to get double pointer accessor for Contact: %v", err)
 		}
@@ -514,7 +514,7 @@ func TestGetAccessor_ComplexPointers(t *testing.T) {
 	// The existing "pointer to double pointer" test could be renamed to be clearer
 	t.Run("double pointer to double pointer", func(t *testing.T) {
 		// Get the pointer to the Manager field (which is already **Person)
-		ptrAccessor, err := GetAccessorDot[**Person](&alice, "Manager")
+		ptrAccessor, err := NewAccessorDot[**Person](&alice, "Manager")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Manager: %v", err)
 		}
@@ -562,7 +562,7 @@ func TestAccessorAny(t *testing.T) {
 		var unknown any = &person
 
 		// Get accessor for Name field as any type
-		accessor, err := GetAccessorDot[any](&unknown, "Name")
+		accessor, err := NewAccessorDot[any](&unknown, "Name")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for Name as any: %v", err)
 		}

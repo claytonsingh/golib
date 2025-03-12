@@ -15,7 +15,7 @@ func TestUnexportedFields(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("hello"))
 
 		// Access the unexported 'buf' field
-		accessor, err := UnsafeGetAccessorDot[[]byte](buf, "buf")
+		accessor, err := NewUnsafeAccessorDot[[]byte](buf, "buf")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for bytes.Buffer.buf: %v", err)
 		}
@@ -44,7 +44,7 @@ func TestUnexportedFields(t *testing.T) {
 		tm := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 
 		// Access the unexported 'wall' field
-		accessor, err := UnsafeGetAccessorDot[uint64](&tm, "wall")
+		accessor, err := NewUnsafeAccessorDot[uint64](&tm, "wall")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for time.Time.wall: %v", err)
 		}
@@ -65,7 +65,7 @@ func TestUnexportedFields(t *testing.T) {
 		mu.Lock()
 
 		// Access the unexported 'state' field
-		accessor, err := UnsafeGetAccessorDot[int32](&mu, "state")
+		accessor, err := NewUnsafeAccessorDot[int32](&mu, "state")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for sync.Mutex.state: %v", err)
 		}
@@ -101,7 +101,7 @@ func TestNestedUnexportedFields(t *testing.T) {
 
 		// First, let's verify we can access the dialsInProgress field
 		// Using any as the type since the internal structure varies across Go versions
-		dialsAccessor, err := UnsafeGetAccessorDot[any](&transport, "dialsInProgress")
+		dialsAccessor, err := NewUnsafeAccessorDot[any](&transport, "dialsInProgress")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for transport.dialsInProgress: %v", err)
 		}
@@ -110,7 +110,7 @@ func TestNestedUnexportedFields(t *testing.T) {
 		t.Logf("Initial dialsInProgress value: %v (type: %T)", dialsValue, dialsValue)
 
 		// Now try to access the nested headPos field
-		headPosAccessor, err := UnsafeGetAccessorDot[int](&transport, "dialsInProgress.headPos")
+		headPosAccessor, err := NewUnsafeAccessorDot[int](&transport, "dialsInProgress.headPos")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for transport.dialsInProgress.headPos: %v", err)
 		}

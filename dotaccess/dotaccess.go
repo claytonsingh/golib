@@ -25,7 +25,7 @@ import (
 
 // MaxDereferenceDepth limits consecutive pointer/interface dereferences to prevent infinite loops.
 // Linked lists (struct->pointer->struct) are unaffected by this limit. This global safety limit
-// applies to all GetAccessor functions and can be adjusted if needed.
+// applies to all NewAccessor functions and can be adjusted if needed.
 var MaxDereferenceDepth int = 100
 
 // FieldAccessor provides type-safe access to get and set values in nested structures.
@@ -77,7 +77,7 @@ func (this *FieldAccessor[T]) Get() T {
 	if this.ptrDepthDiff > 0 {
 		// Map elements cannot be addressed
 		if this.fieldType == fieldTypeMapElement {
-			// This should never happen as it is checked in the getAccessor function
+			// This should never happen as it is checked in the newAccessor function
 			panic("cannot get pointer to map element")
 		}
 
@@ -159,7 +159,7 @@ func (this *FieldAccessor[T]) Set(value T) error {
 	return nil
 }
 
-// GetAccessorDot returns a type-safe accessor for the field at the given path.
+// NewAccessorDot returns a type-safe accessor for the field at the given path.
 // Path is in dot notation, e.g. "person.address.street".
 // Supports navigating through structs, maps, slices, and pointers.
 //
@@ -172,17 +172,17 @@ func (this *FieldAccessor[T]) Set(value T) error {
 // Returns:
 //   - *FieldAccessor[T]: A type-safe accessor for the field.
 //   - error: Any error that occurred while navigating the path.
-func GetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error) {
+func NewAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error) {
 	parts := strings.Split(path, ".")
 	// Grab the last part of the path and count the number of pointers in it
 	// Remove the pointers from the last part of the path
 	lastPart := parts[len(parts)-1]
 	finalDereference := strings.Count(lastPart, "*")
 	parts[len(parts)-1] = strings.ReplaceAll(lastPart, "*", "")
-	return getAccessor[T](obj, parts, false, finalDereference)
+	return newAccessor[T](obj, parts, false, finalDereference)
 }
 
-// UnsafeGetAccessorDot returns a type-safe accessor for the field at the given path.
+// NewUnsafeAccessorDot returns a type-safe accessor for the field at the given path.
 // Path is in dot notation, e.g. "person.address.street".
 // Supports navigating through structs, maps, slices, and pointers.
 // Unsafe accessor will return the value as is, even if the field is unexported.
@@ -196,17 +196,17 @@ func GetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error
 // Returns:
 //   - *FieldAccessor[T]: A type-safe accessor for the field.
 //   - error: Any error that occurred while navigating the path.
-func UnsafeGetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error) {
+func NewUnsafeAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T], error) {
 	parts := strings.Split(path, ".")
 	// Grab the last part of the path and count the number of pointers in it
 	// Remove the pointers from the last part of the path
 	lastPart := parts[len(parts)-1]
 	finalDereference := strings.Count(lastPart, "*")
 	parts[len(parts)-1] = strings.ReplaceAll(lastPart, "*", "")
-	return getAccessor[T](obj, parts, true, finalDereference)
+	return newAccessor[T](obj, parts, true, finalDereference)
 }
 
-// GetAccessor returns a type-safe accessor for the field at the given path.
+// NewAccessor returns a type-safe accessor for the field at the given path.
 // Supports navigating through structs, maps, slices, and pointers.
 //
 // Parameters:
@@ -219,11 +219,11 @@ func UnsafeGetAccessorDot[T any, U any](obj *U, path string) (*FieldAccessor[T],
 // Returns:
 //   - *FieldAccessor[T]: A type-safe accessor for the field.
 //   - error: Any error that occurred while navigating the path.
-func GetAccessor[T any, U any](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error) {
-	return getAccessor[T](obj, path, false, finalDereference)
+func NewAccessor[T any, U any](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error) {
+	return newAccessor[T](obj, path, false, finalDereference)
 }
 
-// UnsafeGetAccessor returns a type-safe accessor for the field at the given path.
+// NewUnsafeAccessor returns a type-safe accessor for the field at the given path.
 // Supports navigating through structs, maps, slices, and pointers.
 // Unsafe accessor will return the value as is, even if the field is unexported.
 //
@@ -237,13 +237,13 @@ func GetAccessor[T any, U any](obj *U, path []string, finalDereference int) (*Fi
 // Returns:
 //   - *FieldAccessor[T]: A type-safe accessor for the field.
 //   - error: Any error that occurred while navigating the path.
-func UnsafeGetAccessor[T any, U any](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error) {
-	return getAccessor[T](obj, path, true, finalDereference)
+func NewUnsafeAccessor[T any, U any](obj *U, path []string, finalDereference int) (*FieldAccessor[T], error) {
+	return newAccessor[T](obj, path, true, finalDereference)
 }
 
-// getAccessor is a helper function that returns a type-safe accessor for the field at the given path.
+// newAccessor is a helper function that returns a type-safe accessor for the field at the given path.
 // If unsafe is true, the accessor will return the value as is, even if the field is unexported.
-func getAccessor[T any, U any](obj *U, path []string, allowUnexported bool, finalDereference int) (*FieldAccessor[T], error) {
+func newAccessor[T any, U any](obj *U, path []string, allowUnexported bool, finalDereference int) (*FieldAccessor[T], error) {
 	if obj == nil {
 		return nil, errors.New("object is nil")
 	}

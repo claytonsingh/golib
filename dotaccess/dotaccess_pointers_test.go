@@ -56,7 +56,7 @@ func TestPointers(t *testing.T) {
 
 		// Test 1: Get and set double pointer string field
 		t.Run("double pointer string field", func(t *testing.T) {
-			accessor, err := GetAccessorDot[string](&testStruct, "Name")
+			accessor, err := NewAccessorDot[string](&testStruct, "Name")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Name: %v", err)
 			}
@@ -85,7 +85,7 @@ func TestPointers(t *testing.T) {
 
 		// Test 2: Get and set triple pointer int field
 		t.Run("triple pointer int field", func(t *testing.T) {
-			accessor, err := GetAccessorDot[int](&testStruct, "Value")
+			accessor, err := NewAccessorDot[int](&testStruct, "Value")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Value: %v", err)
 			}
@@ -114,7 +114,7 @@ func TestPointers(t *testing.T) {
 
 		// Test 3: Access nested struct through double pointer
 		t.Run("double pointer to struct", func(t *testing.T) {
-			accessor, err := GetAccessorDot[string](&testStruct, "Nested.Value")
+			accessor, err := NewAccessorDot[string](&testStruct, "Nested.Value")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Nested.Value: %v", err)
 			}
@@ -136,7 +136,7 @@ func TestPointers(t *testing.T) {
 			}
 
 			// Test nested pointer field
-			ptrAccessor, err := GetAccessorDot[string](&testStruct, "Nested.ValuePtr")
+			ptrAccessor, err := NewAccessorDot[string](&testStruct, "Nested.ValuePtr")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Nested.ValuePtr: %v", err)
 			}
@@ -160,7 +160,7 @@ func TestPointers(t *testing.T) {
 
 		// Test 4: Access element in pointer to array of pointers
 		t.Run("pointer to array of pointers", func(t *testing.T) {
-			accessor, err := GetAccessorDot[string](&testStruct, "PtrArray.1")
+			accessor, err := NewAccessorDot[string](&testStruct, "PtrArray.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for PtrArray.1: %v", err)
 			}
@@ -184,7 +184,7 @@ func TestPointers(t *testing.T) {
 
 		// Test 5: Access value in pointer to map of double pointers
 		t.Run("pointer to map of double pointers", func(t *testing.T) {
-			accessor, err := GetAccessorDot[int](&testStruct, "MapOfPtrs.first")
+			accessor, err := NewAccessorDot[int](&testStruct, "MapOfPtrs.first")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for MapOfPtrs.first: %v", err)
 			}
@@ -236,7 +236,7 @@ func TestPointers(t *testing.T) {
 		t.Run("single * indirection with value accessor", func(t *testing.T) {
 			origPtr := testStruct.Single
 
-			accessor, err := GetAccessorDot[string](&testStruct, "Single*")
+			accessor, err := NewAccessorDot[string](&testStruct, "Single*")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Single: %v", err)
 			}
@@ -263,7 +263,7 @@ func TestPointers(t *testing.T) {
 			origPtr := testStruct.Single
 
 			// Access the value via a pointer
-			accessor, err := GetAccessorDot[*string](&testStruct, "Single*")
+			accessor, err := NewAccessorDot[*string](&testStruct, "Single*")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Single*: %v", err)
 			}
@@ -304,7 +304,7 @@ func TestPointers(t *testing.T) {
 			testStruct.Double = oldPtrPtr
 
 			// Access the *string pointer, not the **string field or string value
-			accessor, err := GetAccessorDot[*string](&testStruct, "Double*")
+			accessor, err := NewAccessorDot[*string](&testStruct, "Double*")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Double**: %v", err)
 			}
@@ -355,7 +355,7 @@ func TestPointers(t *testing.T) {
 			testStruct.Triple = oldPtrPtrPtr
 
 			// Access the **string pointer (deep in the chain)
-			accessor, err := GetAccessorDot[string](&testStruct, "Triple***")
+			accessor, err := NewAccessorDot[string](&testStruct, "Triple***")
 			if err != nil {
 				t.Fatalf("Failed to get accessor for Triple***: %v", err)
 			}

@@ -13,7 +13,7 @@ func TestSlice(t *testing.T) {
 			IntSlice: []int{1, 2, 3},
 		}
 
-		accessor, err := GetAccessorDot[int](&data, "IntSlice.1")
+		accessor, err := NewAccessorDot[int](&data, "IntSlice.1")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for IntSlice.1: %v", err)
 		}
@@ -37,13 +37,13 @@ func TestSlice(t *testing.T) {
 		}
 
 		// Test accessing non-existent index
-		_, err := GetAccessorDot[int](&data, "IntSlice.4")
+		_, err := NewAccessorDot[int](&data, "IntSlice.4")
 		if err == nil {
 			t.Error("Expected error for non-existent index, got nil")
 		}
 
 		// Test accessing non-slice field
-		_, err = GetAccessorDot[int](&data, "IntSlice.abc")
+		_, err = NewAccessorDot[int](&data, "IntSlice.abc")
 		if err == nil {
 			t.Error("Expected error for non-slice field, got nil")
 		}
@@ -60,7 +60,7 @@ func TestSlice(t *testing.T) {
 			*data.IntSlice = append(*data.IntSlice, &i)
 		}
 
-		accessor, err := GetAccessorDot[int](&data, "IntSlice.1")
+		accessor, err := NewAccessorDot[int](&data, "IntSlice.1")
 		if err != nil {
 			t.Fatalf("Failed to get accessor for IntSlice.1: %v", err)
 		}

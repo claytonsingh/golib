@@ -20,7 +20,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[int](&data, "StrMap.one")
+			accessor, err := NewAccessorDot[int](&data, "StrMap.one")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -52,7 +52,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "BoolMap.true")
+			accessor, err := NewAccessorDot[string](&data, "BoolMap.true")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -63,7 +63,7 @@ func TestMap(t *testing.T) {
 			}
 
 			// Also test "false" key
-			accessor, err = GetAccessorDot[string](&data, "BoolMap.false")
+			accessor, err = NewAccessorDot[string](&data, "BoolMap.false")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -95,7 +95,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "IntMap.1")
+			accessor, err := NewAccessorDot[string](&data, "IntMap.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -127,7 +127,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Int8Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Int8Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -159,7 +159,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Int16Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Int16Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -191,7 +191,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Int32Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Int32Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -223,7 +223,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Int64Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Int64Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -255,7 +255,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "UintMap.1")
+			accessor, err := NewAccessorDot[string](&data, "UintMap.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -287,7 +287,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Uint8Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Uint8Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -319,7 +319,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Uint16Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Uint16Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -351,7 +351,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Uint32Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Uint32Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -383,7 +383,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "Uint64Map.1")
+			accessor, err := NewAccessorDot[string](&data, "Uint64Map.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -415,7 +415,7 @@ func TestMap(t *testing.T) {
 				},
 			}
 
-			accessor, err := GetAccessorDot[string](&data, "UintptrMap.1")
+			accessor, err := NewAccessorDot[string](&data, "UintptrMap.1")
 			if err != nil {
 				t.Fatalf("Failed to get accessor: %v", err)
 			}
@@ -448,13 +448,13 @@ func TestMap(t *testing.T) {
 			}
 
 			// Try to access with non-numeric string
-			_, err := GetAccessorDot[string](&data, "IntMap.abc")
+			_, err := NewAccessorDot[string](&data, "IntMap.abc")
 			if err == nil {
 				t.Error("Expected error for non-numeric key, got nil")
 			}
 
 			// Try to access with invalid bool string
-			_, err = GetAccessorDot[string](&data, "IntMap.maybe")
+			_, err = NewAccessorDot[string](&data, "IntMap.maybe")
 			if err == nil {
 				t.Error("Expected error for invalid key, got nil")
 			}
@@ -475,7 +475,7 @@ func TestMap(t *testing.T) {
 			}
 
 			// Test accessing non-existent key
-			_, err := GetAccessorDot[string](&data, "BoolMap.maybe")
+			_, err := NewAccessorDot[string](&data, "BoolMap.maybe")
 			if err == nil {
 				t.Error("Expected error for non-existent key, got nil")
 			}
@@ -491,13 +491,13 @@ func TestMap(t *testing.T) {
 			}
 
 			// Test accessing non-existent key
-			_, err := GetAccessorDot[string](&data, "IntMap.2")
+			_, err := NewAccessorDot[string](&data, "IntMap.2")
 			if err == nil {
 				t.Error("Expected error for non-existent key, got nil")
 			}
 
 			// Test accessing non-map field
-			_, err = GetAccessorDot[string](&data, "IntMap.abc")
+			_, err = NewAccessorDot[string](&data, "IntMap.abc")
 			if err == nil {
 				t.Error("Expected error for non-map field, got nil")
 			}
@@ -513,13 +513,13 @@ func TestMap(t *testing.T) {
 			}
 
 			// Test accessing non-existent key
-			_, err := GetAccessorDot[string](&data, "UintMap.2")
+			_, err := NewAccessorDot[string](&data, "UintMap.2")
 			if err == nil {
 				t.Error("Expected error for non-existent key, got nil")
 			}
 
 			// Test accessing non-map field
-			_, err = GetAccessorDot[string](&data, "UintMap.abc")
+			_, err = NewAccessorDot[string](&data, "UintMap.abc")
 			if err == nil {
 				t.Error("Expected error for non-map field, got nil")
 			}
@@ -539,7 +539,7 @@ func TestMap(t *testing.T) {
 			}
 
 			// Test accessing unsupported key type
-			_, err := GetAccessorDot[string](&data, "ObjMap.maybe")
+			_, err := NewAccessorDot[string](&data, "ObjMap.maybe")
 			if err == nil {
 				t.Error("Expected error for unsupported key type, got nil")
 			}
@@ -559,7 +559,7 @@ func TestMap(t *testing.T) {
 			},
 		}
 
-		accessor, err := GetAccessorDot[int](&data, "PtrMap.one")
+		accessor, err := NewAccessorDot[int](&data, "PtrMap.one")
 		if err != nil {
 			t.Fatalf("Failed to get accessor: %v", err)
 		}
