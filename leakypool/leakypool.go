@@ -3,7 +3,11 @@
 // instead of blocking or growing the pool size.
 package leakypool
 
-import "errors"
+import (
+	"errors"
+	"io"
+	"sync"
+)
 
 var (
 	// ErrInvalidSize is returned when attempting to create a pool with non-positive size.
@@ -17,6 +21,7 @@ var (
 // When the pool is full, Return() discards objects instead of blocking.
 type LeakyPool[T any] struct {
 	pool    chan *T
+	mu      sync.RWMutex // mu is used to protect the pool; it is only locked for methods that mutate pool.
 	factory func() (T, error)
 }
 
@@ -50,34 +55,88 @@ func NewLeakyPool[T any](size int, factory func() (T, error)) (*LeakyPool[T], er
 //   - Ref[T]: A reference to the retrieved or newly created object.
 //   - error: Forwards the error returned by the factory function if object creation fails.
 func (this *LeakyPool[T]) Get() (Ref[T], error) {
+	this.mu.RLock()
+	pool := this.pool
+	this.mu.RUnlock()
+
 	select {
-	case obj := <-this.pool:
-		return Ref[T]{Object: obj, pool: this.pool}, nil
+	case obj := <-pool:
+		return Ref[T]{Object: obj, pool: this.storeorclose}, nil
 	default:
 		obj, err := this.factory()
 		if err != nil {
-			return Ref[T]{Object: nil, pool: this.pool}, err
+			return Ref[T]{}, err
 		}
-		return Ref[T]{Object: &obj, pool: this.pool}, nil
+		return Ref[T]{Object: &obj, pool: this.storeorclose}, nil
 	}
 }
 
-// TryGet attempts to get an object from the pool without creating a new one.
-// Returns true if an object was available, false if the pool was empty.
-// The passed ref is populated with the pooled object on success.
-//
-// Parameters:
-//   - ref *Ref[T]: A pointer to a Ref that will be populated with the pooled object if available.
+// Close drains the pool and closes all objects.
+// Any objects returned to the pool after Close() is called are discarded.
+// If the objects implement io.Closer, they are closed.
 //
 // Returns:
-//   - bool: True if an object was available from the pool, false otherwise.
-func (this *LeakyPool[T]) TryGet() (Ref[T], bool) {
-	select {
-	case obj := <-this.pool:
-		return Ref[T]{Object: obj, pool: this.pool}, true
-	default:
-		return Ref[T]{Object: nil, pool: this.pool}, false
+//   - error: An error if any closable objects fail to close, or nil if all objects closed successfully.
+func (this *LeakyPool[T]) Close() error {
+	// Only Close mutates the pool, so we need exclusive access to it.
+	this.mu.Lock()
+	pool := this.pool
+	this.pool = nil
+	this.mu.Unlock()
+
+	var errs []error
+
+	if pool == nil {
+		return nil
 	}
+	for {
+		select {
+		case obj := <-pool:
+			if closer, ok := any(obj).(io.Closer); ok {
+				err := closer.Close()
+				if err != nil {
+					errs = append(errs, err)
+				}
+			}
+		default:
+			close(pool)
+			return errors.Join(errs...)
+		}
+	}
+}
+
+// storeorclose is a helper function to store an object in the pool or close/discard it if the pool is full.
+//
+// Returns:
+//   - error: An error if the object is closable and Close() fails, or nil otherwise.
+func (this *LeakyPool[T]) storeorclose(obj *T) error {
+	this.mu.RLock()
+	pool := this.pool
+	this.mu.RUnlock()
+	select {
+	case pool <- obj:
+		return nil
+	default:
+		// Pool is full, discard the object
+		if closer, ok := any(obj).(io.Closer); ok {
+			return closer.Close()
+		}
+		return nil
+	}
+}
+
+// Capacity returns the maximum number of objects that can be stored in the pool.
+func (this *LeakyPool[T]) Capacity() int {
+	this.mu.RLock()
+	defer this.mu.RUnlock()
+	return cap(this.pool)
+}
+
+// Size returns the current number of objects in the pool.
+func (this *LeakyPool[T]) Size() int {
+	this.mu.RLock()
+	defer this.mu.RUnlock()
+	return len(this.pool)
 }
 
 // Ref represents a reference to a pooled object. It provides a safe way
@@ -86,29 +145,20 @@ type Ref[T any] struct {
 	// Object is the pooled object reference. May be nil if the Ref is invalid.
 	Object *T
 	// pool is the channel to return the object to. Set to nil after Return() is called.
-	pool chan *T
+	pool func(obj *T) error
 }
 
 // Return attempts to return the object to the pool. If the pool is full, the object is discarded.
 // After calling Return(), the Ref should not be used again.
-func (this *Ref[T]) Return() {
+//
+// Returns:
+//   - error: An error if the object is closable and Close() fails when discarded, or nil otherwise.
+func (this *Ref[T]) Return() error {
+	var err error
 	if this.pool != nil && this.Object != nil {
-		select {
-		case this.pool <- this.Object:
-			this.pool = nil
-			this.Object = nil
-		default:
-			// Pool is full, discard the object
-		}
+		err = this.pool(this.Object)
+		this.pool = nil
+		this.Object = nil
 	}
-}
-
-// Capacity returns the maximum number of objects that can be stored in the pool.
-func (p *LeakyPool[T]) Capacity() int {
-	return cap(p.pool)
-}
-
-// Size returns the current number of objects in the pool.
-func (p *LeakyPool[T]) Size() int {
-	return len(p.pool)
+	return err
 }
