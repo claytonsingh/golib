@@ -233,8 +233,7 @@ func TestMultipleSignals(t *testing.T) {
 	signalCount := 0
 	go func() {
 		defer wg.Done()
-		wait := signal.GetWaiter(false)
-		for wait() {
+		for wait := signal.GetWaiter(false); wait(); {
 			time.Sleep(20 * time.Millisecond)
 			signalCount++
 		}

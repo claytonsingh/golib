@@ -69,10 +69,8 @@ func main() {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			wait := signal.GetWaiter(true)
-			
 			fmt.Printf("Component %d: waiting...\n", id)
-			for wait() {
+			for wait := signal.GetWaiter(true); wait(); {
 				time.Sleep(50 * time.Millisecond)
 				fmt.Printf("Component %d: config updated\n", id)
 			}
@@ -81,10 +79,10 @@ func main() {
 	}
 	
 	time.Sleep(100 * time.Millisecond)
-	signal.Signal()
+	signal.Signal() // A
 	
 	time.Sleep(100 * time.Millisecond)
-	signal.Signal()
+	signal.Signal() // B
 	
 	time.Sleep(100 * time.Millisecond)
 	signal.Close()
@@ -98,9 +96,11 @@ func main() {
 ```
 Component 1: waiting...
 Component 2: waiting...
-Component 1: config updated
+Component 1: config updated // Initially Signaled
 Component 2: config updated
-Component 1: config updated
+Component 1: config updated // A
+Component 2: config updated
+Component 1: config updated // B
 Component 2: config updated
 Component 1: shutting down
 Component 2: shutting down
