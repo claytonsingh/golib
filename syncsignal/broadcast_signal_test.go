@@ -7,21 +7,21 @@ import (
 	"time"
 )
 
-// TestNewSignal verifies a new signal is created in the correct initial state
+// TestNewSignal verifies NewSignal creates a BroadcastSignal in the correct initial state.
 func TestNewSignal(t *testing.T) {
 	signal := NewSignal()
 	if signal == nil {
 		t.Fatal("NewSignal() returned nil")
 	}
 	if signal.closed {
-		t.Error("New signal should not be closed")
+		t.Error("BroadcastSignal should not be closed")
 	}
 	if signal.value != 0 {
-		t.Errorf("New signal should have value 0, got %d", signal.value)
+		t.Errorf("BroadcastSignal should have value 0, got %d", signal.value)
 	}
 }
 
-// TestWait tests multiple goroutines waiting on the same signal
+// TestWait tests multiple goroutines waiting on the same BroadcastSignal.
 func TestWait(t *testing.T) {
 	signal := NewSignal()
 	var counter atomic.Int32
@@ -60,7 +60,7 @@ func TestWait(t *testing.T) {
 	}
 }
 
-// TestClose verifies Close() properly shuts down the signal and wakes all waiters
+// TestClose verifies Close() properly shuts down the BroadcastSignal and wakes all waiters.
 func TestClose(t *testing.T) {
 	signal := NewSignal()
 	var counter atomic.Int32
@@ -106,13 +106,13 @@ func TestCloseIdempotent(t *testing.T) {
 	// First close
 	signal.Close()
 	if !signal.closed {
-		t.Error("Signal should be closed after first Close() call")
+		t.Error("BroadcastSignal should be closed after first Close() call")
 	}
 
 	// Second close should not cause issues
 	signal.Close()
 	if !signal.closed {
-		t.Error("Signal should remain closed after second Close() call")
+		t.Error("BroadcastSignal should remain closed after second Close() call")
 	}
 }
 

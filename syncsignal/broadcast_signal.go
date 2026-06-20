@@ -7,30 +7,40 @@ import (
 	"sync"
 )
 
-// Signal is a state-based synchronization primitive that allows multiple goroutines
+// BroadcastSignal is a state-based synchronization primitive that allows multiple goroutines
 // to wait for notifications of state changes.
-type Signal struct {
+type BroadcastSignal struct {
 	cond   *sync.Cond
 	value  uint64
 	closed bool
 }
 
-// NewSignal creates and returns a new Signal instance.
+// Deprecated: Use BroadcastSignal instead.
+type Signal = BroadcastSignal
+
+// NewBroadcastSignal creates and returns a new BroadcastSignal instance.
 //
 // Returns:
-//   - *Signal: A new initialized Signal instance.
-func NewSignal() *Signal {
-	return &Signal{
+//   - *BroadcastSignal: A new initialized BroadcastSignal instance.
+func NewBroadcastSignal() *BroadcastSignal {
+	return &BroadcastSignal{
 		cond:   sync.NewCond(&sync.Mutex{}),
 		closed: false,
 	}
 }
 
-// Signal wakes up all goroutines that are waiting on this Signal instance.
-// If the Signal has been closed, calling Signal() will have no effect.
+// NewSignal creates and returns a new Signal instance for backward compatibility.
+//
+// Deprecated: Use NewBroadcastSignal instead.
+func NewSignal() *Signal {
+	return NewBroadcastSignal()
+}
+
+// Signal wakes up all goroutines that are waiting on this BroadcastSignal instance.
+// If the BroadcastSignal has been closed, calling Signal() will have no effect.
 //
 // Thread-safe: This method can be called from multiple goroutines concurrently.
-func (this *Signal) Signal() {
+func (this *BroadcastSignal) Signal() {
 	this.cond.L.Lock()
 	defer this.cond.L.Unlock()
 
@@ -40,13 +50,14 @@ func (this *Signal) Signal() {
 	this.cond.Broadcast()
 }
 
-// Close closes the Signal instance, preventing any further signals from being processed.
-// All waiting goroutines will be awakened and their wait functions will return true
-// indicating the Signal has been closed. After closing, calling Signal() will have no effect.
+// Close closes the BroadcastSignal instance, preventing any further signals from being processed.
+// All waiting goroutines are released. A wait function returns false when the BroadcastSignal
+// is closed, unless an outstanding signal still needs to be delivered. After closing,
+// calling Signal() will have no effect.
 //
 // Thread-safe: This method can be called from multiple goroutines concurrently.
 // Multiple calls to Close() are safe but have no additional effect.
-func (this *Signal) Close() {
+func (this *BroadcastSignal) Close() {
 	this.cond.L.Lock()
 	defer this.cond.L.Unlock()
 
@@ -58,7 +69,7 @@ func (this *Signal) Close() {
 
 // GetWaiter returns a wait function that blocks until a signal occurs.
 // The returned function can be used to wait for the next signal or check if the
-// Signal has been closed.
+// BroadcastSignal has been closed.
 //
 // Parameters:
 //   - signaled bool: If true, the returned wait function will not block on its first call.
@@ -67,11 +78,11 @@ func (this *Signal) Close() {
 // Returns:
 //   - func() bool: A function that, when called, blocks until a new signal is received.
 //     This function always proceeds at least once after Signal() has been called.
-//     Returns false if the Signal was closed, true otherwise.
+//     Returns false if the BroadcastSignal was closed, true otherwise.
 //
 // Thread-safe: This method can be called from multiple goroutines concurrently.
 // Each call returns a new, independent wait function.
-func (this *Signal) GetWaiter(signaled bool) func() bool {
+func (this *BroadcastSignal) GetWaiter(signaled bool) func() bool {
 	var value uint64
 	this.cond.L.Lock()
 	value = this.value
