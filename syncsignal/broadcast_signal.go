@@ -10,6 +10,7 @@ import (
 // BroadcastSignal is a state-based synchronization primitive that allows multiple goroutines
 // to wait for notifications of state changes.
 type BroadcastSignal struct {
+	mu     sync.Mutex
 	cond   *sync.Cond
 	value  uint64
 	closed bool
@@ -23,10 +24,11 @@ type Signal = BroadcastSignal
 // Returns:
 //   - *BroadcastSignal: A new initialized BroadcastSignal instance.
 func NewBroadcastSignal() *BroadcastSignal {
-	return &BroadcastSignal{
-		cond:   sync.NewCond(&sync.Mutex{}),
+	this := &BroadcastSignal{
 		closed: false,
 	}
+	this.cond = sync.NewCond(&this.mu)
+	return this
 }
 
 // NewSignal creates and returns a new Signal instance for backward compatibility.

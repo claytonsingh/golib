@@ -1,6 +1,9 @@
 package syncsignal
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 // OnceSignal is a lightweight one-shot goroutine synchronization primitive.
 // Signal unblocks all current and future Wait calls. Once signaled, Signal has
@@ -19,7 +22,8 @@ import "sync"
 // This type is safe for concurrent use.
 type OnceSignal struct {
 	mu      sync.Mutex
-	trigger func()
+	gate    sync.Mutex
+	pending atomic.Bool
 }
 
 // Signal sets the primitive to the signaled state and releases every goroutine
@@ -27,8 +31,15 @@ type OnceSignal struct {
 //
 // Thread-safe: This method can be called from multiple goroutines concurrently.
 func (this *OnceSignal) Signal() {
-	if this.trigger != nil {
-		this.trigger()
+	if this.pending.Load() {
+		this.mu.Lock()
+		defer this.mu.Unlock()
+		if this.pending.Load() {
+			// Make sure to unlock the gate before storing false. Otherwise signal
+			// could return on another goroutine before the gate is unlocked.
+			this.gate.Unlock()
+			this.pending.Store(false)
+		}
 	}
 }
 
@@ -37,15 +48,17 @@ func (this *OnceSignal) Signal() {
 //
 // Thread-safe: This method can be called from multiple goroutines concurrently.
 func (this *OnceSignal) Wait() {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+	if this.pending.Load() {
+		this.gate.Lock()
+		defer this.gate.Unlock()
+	}
 }
 
 // NewOnceSignal initializes a new OnceSignal in the nonsignaled state. Wait
 // blocks until Signal is called.
 func NewOnceSignal() *OnceSignal {
 	this := &OnceSignal{}
-	this.mu.Lock()
-	this.trigger = sync.OnceFunc(this.mu.Unlock)
+	this.gate.Lock()
+	this.pending.Store(true)
 	return this
 }
